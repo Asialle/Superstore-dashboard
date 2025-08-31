@@ -3,6 +3,16 @@ import numpy as np
 import streamlit as st
 import matplotlib.pyplot as plt
 
+# Globális matplotlib beállítások, hogy a feliratok mindig látszódjanak
+plt.rcParams.update({
+    "text.color": "black",
+    "axes.labelcolor": "black",
+    "xtick.color": "black",
+    "ytick.color": "black",
+    "axes.titlecolor": "black"
+})
+
+
 # Adatok
 
 data = pd.read_csv("data.csv")
