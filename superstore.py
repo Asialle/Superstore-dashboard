@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import streamlit as st
 import matplotlib.pyplot as plt
+import plotly.express as px
 
 # Globális matplotlib beállítások, hogy a feliratok mindig látszódjanak
 plt.rcParams.update({
@@ -12,11 +13,8 @@ plt.rcParams.update({
     "axes.titlecolor": "black"
 })
 
-
 # Adatok
-
 data = pd.read_csv("data.csv")
-
 
 data["Order Date"] = pd.to_datetime(data["Order Date"], dayfirst=True)
 data["Ship Date"] = pd.to_datetime(data["Ship Date"], dayfirst=True)
@@ -28,9 +26,7 @@ data["Month"] = data["Order Date"].dt.month.astype('Int64')
 # Új oszlop: szállítási napok
 data["Days_to_Ship"] = (data["Order Date"] - data["Ship Date"]).dt.days
 
-
-#  Streamlit dashboard beállítás
-
+# Streamlit dashboard beállítás
 st.set_page_config(page_title="Superstore Dashboard", layout="wide")
 
 # háttérszín és KPI dobozok
@@ -47,8 +43,7 @@ st.markdown(
 
 st.title("Superstore Sales Dashboard")
 
-
-#  Oldalsáv szűrők
+# Oldalsáv szűrők
 possible_years = sorted(data["Year"].dropna().unique())
 year_filter = st.sidebar.selectbox("Select year:", options=["All"] + [int(y) for y in possible_years], index=0)
 
@@ -67,7 +62,7 @@ segments = sorted(data["Segment"].dropna().unique())
 segment_options = ["All"] + segments
 segment_filter = st.sidebar.multiselect("Select Segment:", options=segment_options, default=["All"])
 
-#  Adatok szűrése
+# Adatok szűrése
 df = data.copy()
 if year_filter != "All":
     df = df[df["Year"] == year_filter]
@@ -119,36 +114,39 @@ with col3:
     orders_series = df.groupby("Order Date")["Order ID"].nunique()
     plot_sparkline(orders_series, color=palette["Orders"])
 
-# Top 10 Products by Sales
+# 🔹 Top 10 Products by Sales – Plotly
 st.subheader("🔝 Top 10 Products by Sales")
 top_sales = df.groupby("Product Name")["Sales"].sum().sort_values(ascending=False).head(10).reset_index()
-fig, ax = plt.subplots()
-ax.barh(top_sales["Product Name"], top_sales["Sales"], color=palette["Sales"])
-ax.set_xlabel("Sales ($)")
-ax.set_ylabel("Product Name")
-ax.set_title("Top 10 Products by Sales")
-plt.gca().invert_yaxis()
-for i, v in enumerate(top_sales["Sales"]):
-    ax.text(v + 0.01*v, i, f"{v:.2f}")
+fig = px.bar(
+    top_sales,
+    y="Product Name",
+    x="Sales",
+    orientation='h',
+    text="Sales",
+    color="Sales",
+    color_continuous_scale=["#ffcc00","#0058a3"]
+)
+fig.update_traces(texttemplate='%{text:.2f}', textposition='inside')
+fig.update_layout(yaxis={'categoryorder':'total ascending'}, height=600, title="Top 10 Products by Sales")
+st.plotly_chart(fig, use_container_width=True)
 
-st.pyplot(fig)
-
-
-
-#  Top 10 Products by Profit
+# 🔹 Top 10 Products by Profit – Plotly
 st.subheader("💰 Top 10 Products by Profit")
 top_profit = df.groupby("Product Name")["Profit"].sum().sort_values(ascending=False).head(10).reset_index()
-fig, ax = plt.subplots()
-ax.barh(top_profit["Product Name"], top_profit["Profit"], color=palette["Profit"])
-ax.set_xlabel("Profit ($)")
-ax.set_ylabel("Product Name")
-ax.set_title("Top 10 Products by Profit")
-plt.gca().invert_yaxis()
-for i, v in enumerate(top_profit["Profit"]):
-    ax.text(v + 0.01*v, i, f"{v:.2f}")
-st.pyplot(fig)
+fig = px.bar(
+    top_profit,
+    y="Product Name",
+    x="Profit",
+    orientation='h',
+    text="Profit",
+    color="Profit",
+    color_continuous_scale=["#0058a3","#ffcc00"]
+)
+fig.update_traces(texttemplate='%{text:.2f}', textposition='inside')
+fig.update_layout(yaxis={'categoryorder':'total ascending'}, height=600, title="Top 10 Products by Profit")
+st.plotly_chart(fig, use_container_width=True)
 
-# 📌 Worst 5 Products by Loss
+# 💔 Worst 5 Products by Loss – Matplotlib maradhat
 st.subheader("💔 Worst 5 Products by Loss")
 worst_loss = df.groupby("Product Name")["Profit"].sum().sort_values().head(5).reset_index()
 fig, ax = plt.subplots()
@@ -161,8 +159,7 @@ for i, v in enumerate(worst_loss["Profit"]):
     ax.text(v - 0.01*abs(v), i, f"{v:.2f}")
 st.pyplot(fig)
 
-#  Átlagos szállítási idő
-
+# 🚚 Átlagos szállítási idő
 st.subheader("🚚 Average Shipping Time (days)")
 avg_ship = df["Days_to_Ship"].mean()
 min_ship = df["Days_to_Ship"].min()
@@ -174,9 +171,7 @@ ax.set_ylabel("Days")
 ax.set_title("Average Shipping Time")
 st.pyplot(fig)
 
-
-#  Éves eladási trendek kategóriák szerint
-
+# 📈 Éves eladási trendek kategóriák szerint
 st.subheader("📈 Yearly Sales Trends by Category")
 sales_trend = df.groupby(["Year", "Category"])["Sales"].sum().reset_index()
 fig, ax = plt.subplots()
@@ -193,8 +188,7 @@ ax.set_title("Yearly Sales by Category")
 ax.legend()
 st.pyplot(fig)
 
-
-#  Heatmap kategóriák szerint
+# 🔥 Heatmap kategóriák szerint
 st.subheader("🔥 Correlation Heatmap of Sales & Profit")
 corr_df = df[["Sales","Profit","Quantity","Discount","Days_to_Ship"]].corr()
 fig, ax = plt.subplots()
