@@ -122,15 +122,25 @@ with col3:
 # Top 10 Products by Sales
 st.subheader("🔝 Top 10 Products by Sales")
 top_sales = df.groupby("Product Name")["Sales"].sum().sort_values(ascending=False).head(10).reset_index()
-fig, ax = plt.subplots()
-ax.barh(top_sales["Product Name"], top_sales["Sales"], color=palette["Sales"])
-ax.set_xlabel("Sales ($)")
+
+# Skálázás ezresben, hogy a szám rövidebb legyen
+top_sales["Sales_k"] = top_sales["Sales"] / 1000
+
+fig, ax = plt.subplots(figsize=(14, 8))
+bars = ax.barh(top_sales["Product Name"], top_sales["Sales_k"], color=palette["Sales"])
+ax.set_xlabel("Sales (k$)")
 ax.set_ylabel("Product Name")
 ax.set_title("Top 10 Products by Sales")
 plt.gca().invert_yaxis()
-for i, v in enumerate(top_sales["Sales"]):
-    ax.text(v + 0.01*v, i, f"{v:.2f}")
-st.pyplot(fig)
+
+# számok a sávon belül, max 95%
+for bar, value in zip(bars, top_sales["Sales_k"]):
+    text_x = value * 0.95
+    ax.text(text_x, bar.get_y() + bar.get_height()/2,
+            f'{value:.2f}', ha='right', va='center', color='white', fontsize=10)
+
+st.pyplot(fig, use_container_width=False)
+
 
 
 #  Top 10 Products by Profit
